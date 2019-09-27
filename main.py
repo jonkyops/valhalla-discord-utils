@@ -19,6 +19,10 @@ def common_member(a, b):
     if len(a_set.intersection(b_set)) > 0:
         return(True)
     return(False)
+
+
+def get_channel_by_name(guild, channel_name):
+    return next(filter(lambda x: x.name == channel_name, guild.text_channels))
 # endregion utils
 
 
@@ -39,7 +43,15 @@ async def on_message(message):
 
 
 async def list_users_missing_roles(message):
-    members = filter(lambda x: x.bot == False, message.channel.members)
+
+    # check if any channel was specified
+    split = message.content.split()
+    if len(split) > 1:
+        channel = get_channel_by_name(message.channel.guild, split[1])
+    else:
+        # just go with the channel where the message was posted
+        channel = message.channel
+    members = filter(lambda x: x.bot == False, channel.members)
     for member in members:
 
         # build up the list of roles the user has
