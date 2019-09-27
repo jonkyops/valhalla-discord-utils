@@ -3,7 +3,6 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# client = discord.Client()
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
