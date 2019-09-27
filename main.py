@@ -1,8 +1,14 @@
 import discord
 import os
+from discord.ext import commands
+from dotenv import load_dotenv
 
-client = discord.Client()
-token = os.environ['DISCORD_TOKEN']
+# client = discord.Client()
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+GUILD = os.getenv('DISCORD_GUILD')
+
+bot = commands.Bot(command_prefix='!valhalla ')
 
 group_roles = ['Tanks', 'DPS', 'Healers']
 class_roles = ['Druids', 'Hunters', 'Mages', 'Paladins',
@@ -19,45 +25,18 @@ def common_member(a, b):
     if len(a_set.intersection(b_set)) > 0:
         return(True)
     return(False)
-
-
-def get_channel_by_name(guild, channel_name):
-    return next(filter(lambda x: x.name == channel_name, guild.text_channels))
 # endregion utils
 
 
-@client.event
-async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
-
-
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
-    if message.content.startswith('!ListUsersMissingRoles'):
-        await list_users_missing_roles(message)
-
-# ListUsersMissingRoles
-
-
-async def list_users_missing_roles(message):
-
-    # check if any channel was specified
-    split = message.content.split()
-    if len(split) > 1:
-        channel = get_channel_by_name(message.channel.guild, split[1])
-    else:
-        # just go with the channel where the message was posted
-        channel = message.channel
-    members = filter(lambda x: x.bot == False, channel.members)
+@commands.has_role('Officers')
+@bot.command(name='list-missing-roles', help='lists users that are missing required roles from the guild-roles channel')
+async def list_users_missing_roles(ctx):
+    members = filter(lambda x: x.bot == False, ctx.guild.members)
+    results = []
     for member in members:
 
         # build up the list of roles the user has
-        roles = []
-        for role in member.roles:
-            roles.append(role.name)
+        roles = [role.name for role in member.roles]
 
         # see if the roles the user has matches anything in the required lists
         group_assigned = common_member(roles, group_roles)
@@ -75,8 +54,15 @@ async def list_users_missing_roles(message):
                 missing_roles.append('class')
             if professions_assigned == False:
                 missing_roles.append('professions')
-
-            await message.channel.send('{0} is missing {1}'.format(member.display_name, '/'.join(missing_roles)))
+            
+            results.append(
+                '{0} - {1}'.format(member.display_name, '/'.join(missing_roles))
+            )
         pass
-
-client.run(token)
+    
+    if len(results) > 0:
+        lines = '\n\t * '.join(results)
+        await ctx.send(f'Guild Members Missing Roles:\n\t * {lines}')
+    else:
+        await ctx.send(f'No missing roles! ...What are you hiding?')
+bot.run(TOKEN)
